@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import ToolCard from "@/components/ToolCard";
 import { 
   faQrcode, 
@@ -10,90 +7,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Home() {
-  const [isAILoading, setIsAILoading] = useState(false);
-  const [isAIReady, setIsAIReady] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-
-  // Précharger le modèle IA dès le chargement de la page d'accueil
-  useEffect(() => {
-    const preloadAI = async (attempt = 1) => {
-      try {
-        setIsAILoading(true);
-        setAiError(null);
-        console.log(`🚀 Tentative ${attempt}/3 : Préchargement du modèle IA...`);
-        
-        // Timeout de 90 secondes
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 90000)
-        );
-        
-        const loadPromise = (async () => {
-          try {
-            const { preload } = await import("@imgly/background-removal");
-            await preload({
-              model: "isnet",
-            });
-          } catch (err) {
-            // Gestion spécifique des erreurs WASM
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            if (errorMessage.includes('wasm') || errorMessage.includes('env')) {
-              console.warn("⚠️ Erreur WASM détectée, le modèle se chargera à la demande");
-              throw new Error('WASM_ERROR');
-            }
-            throw err;
-          }
-        })();
-        
-        await Promise.race([loadPromise, timeoutPromise]);
-        
-        setIsAIReady(true);
-        setRetryCount(0);
-        console.log("✅ Modèle IA préchargé et prêt !");
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`❌ Tentative ${attempt} échouée:`, error);
-        
-        // Si c'est une erreur WASM, on abandonne immédiatement (pas de retry)
-        if (errorMessage.includes('WASM_ERROR') || errorMessage.includes('wasm') || errorMessage.includes('env')) {
-          setAiError("Le modèle IA se chargera lors de la première utilisation.");
-          setIsAIReady(false);
-          setRetryCount(0);
-          setIsAILoading(false);
-          console.log("ℹ️ Préchargement désactivé. Le modèle se chargera à la demande.");
-          return;
-        }
-        
-        // Retry jusqu'à 3 fois pour les autres erreurs
-        if (attempt < 3) {
-          setRetryCount(attempt);
-          console.log(`🔄 Nouvelle tentative dans 5 secondes...`);
-          setTimeout(() => preloadAI(attempt + 1), 5000);
-        } else {
-          // Après 3 tentatives, on abandonne mais on permet quand même l'utilisation
-          setAiError(
-            errorMessage === 'Timeout'
-              ? "Connexion trop lente. Le modèle se chargera lors de l'utilisation."
-              : "Le modèle se chargera lors de la première utilisation."
-          );
-          setIsAIReady(false);
-          setRetryCount(0);
-          console.log("⚠️ Préchargement abandonné. Le modèle se chargera à la demande.");
-        }
-      } finally {
-        if (attempt >= 3 || isAIReady) {
-          setIsAILoading(false);
-        }
-      }
-    };
-
-    // Lancer le préchargement après 2 secondes
-    const timer = setTimeout(() => {
-      preloadAI();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
   const tools = [
     {
       title: "Générateur de QR Code",
@@ -167,71 +80,12 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Indicateur de préchargement IA */}
-          {isAILoading && (
-            <div className="mt-12 flex justify-center">
-              <div className="inline-flex items-center gap-3 px-6 py-3 bg-niyya-lime/10 border border-niyya-lime/30 rounded-lg">
-                <div className="animate-spin h-5 w-5 border-2 border-niyya-lime border-t-transparent rounded-full"></div>
-                <div className="text-left">
-                  <p className="text-sm text-niyya-lime font-semibold">
-                    Préchargement du modèle IA...
-                    {retryCount > 0 && ` (Tentative ${retryCount + 1}/3)`}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {retryCount > 0 
-                      ? "Connexion lente détectée, nouvelle tentative..."
-                      : "Le suppresseur de fond sera instantané"
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isAIReady && !aiError && (
-            <div className="mt-12 flex justify-center">
-              <div className="inline-flex items-center gap-3 px-6 py-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                <span className="text-green-500 text-xl">✅</span>
-                <div className="text-left">
-                  <p className="text-sm text-green-400 font-semibold">
-                    Modèle IA prêt !
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Suppression de fond instantanée disponible
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Message d'erreur avec fallback */}
-          {aiError && (
-            <div className="mt-12 flex justify-center">
-              <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <span className="text-blue-400 text-xl">ℹ️</span>
-                <div className="text-left">
-                  <p className="text-sm text-blue-400 font-semibold">
-                    Mode chargement à la demande
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {aiError}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    L'outil fonctionnera normalement avec un temps de chargement lors du premier usage.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Message outils en cours */}
-          {!isAILoading && !isAIReady && !aiError && (
-            <div className="mt-12 text-center">
-              <p className="text-gray-500 text-sm">
-                D'autres outils sont en cours de développement...
-              </p>
-            </div>
-          )}
+          <div className="mt-12 text-center">
+            <p className="text-gray-500 text-sm">
+              D'autres outils sont en cours de développement...
+            </p>
+          </div>
 
         </div>
       </section>

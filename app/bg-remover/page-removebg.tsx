@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, ChangeEvent, DragEvent } from "react";
+import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import Link from "next/link";
 import Button from "@/components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -18,130 +18,45 @@ interface RemovalResult {
 export default function BackgroundRemoverPage() {
   const [result, setResult] = useState<RemovalResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [outputResolution, setOutputResolution] = useState<number>(99999); // Original par défaut
   const [outputFormat, setOutputFormat] = useState<string>("png");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ACCEPTED_FORMATS = [
     "image/jpeg",
-    "image/jpg",
+    "image/jpg", 
     "image/png",
     "image/webp",
   ];
 
-  // Note: Le modèle IA est préchargé dès la page d'accueil pour une expérience instantanée
-
   const removeBackground = async (file: File): Promise<Blob> => {
-    try {
-      // Vérifier qu'on est bien côté client
-      if (typeof window === 'undefined') {
-        throw new Error('Cette fonction doit être exécutée côté client');
-      }
-
-      // Importer et initialiser la bibliothèque avec gestion d'erreur robuste
-      let removeBg;
-      try {
-        const bgRemovalModule = await import("@imgly/background-removal");
-        
-        // Vérifier que le module est correctement chargé
-        if (!bgRemovalModule || !bgRemovalModule.removeBackground) {
-          throw new Error('Module de suppression de fond non disponible');
-        }
-        
-        removeBg = bgRemovalModule.removeBackground;
-      } catch (importError) {
-        console.error("Erreur import module:", importError);
-        throw new Error('Le module de suppression de fond n\'a pas pu être chargé. Veuillez rafraîchir la page.');
-      }
-
-      // Configuration minimale pour éviter les erreurs
-      const config = {
-        progress: (key: string, current: number, total: number) => {
-          const percentage = Math.round((current / total) * 100);
-          setProgress(percentage);
-        },
-      };
-
-      // Tentative de suppression du fond
-      let blob;
-      try {
-        blob = await removeBg(file, config);
-      } catch (removeBgError) {
-        console.error("Erreur lors de la suppression:", removeBgError);
-        // Fallback: essayer sans configuration
-        blob = await removeBg(file);
-      }
-      
-      // Redimensionner si nécessaire et convertir au format choisi
-      blob = await processOutputImage(blob);
-      
-      return blob;
-    } catch (error) {
-      console.error("Erreur suppression fond:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      // Messages d'erreur plus clairs
-      if (errorMessage.includes('wasm') || errorMessage.includes('env') || errorMessage.includes('undefined')) {
-        throw new Error('Le système de suppression de fond n\'est pas disponible. Veuillez rafraîchir la page et réessayer.');
-      }
-      
-      throw error;
+    // Option 1: Utiliser Remove.bg API (nécessite une clé API)
+    // Vous pouvez obtenir une clé gratuite sur https://www.remove.bg/api
+    const API_KEY = process.env.NEXT_PUBLIC_REMOVEBG_API_KEY || 'YOUR_API_KEY';
+    
+    if (API_KEY === 'YOUR_API_KEY') {
+      throw new Error('Veuillez configurer votre clé API Remove.bg dans les variables d\'environnement');
     }
-  };
 
-  const processOutputImage = async (blob: Blob): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+    const formData = new FormData();
+    formData.append('image_file', file);
+    formData.append('size', 'auto');
+    formData.append('format', outputFormat);
 
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        // Redimensionner si nécessaire
-        if (outputResolution !== 99999 && width > outputResolution) {
-          const ratio = outputResolution / width;
-          width = outputResolution;
-          height = Math.round(height * ratio);
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        if (!ctx) {
-          reject(new Error("Canvas context non disponible"));
-          return;
-        }
-
-        // Pour JPG, fond blanc, sinon transparent
-        if (outputFormat === "jpg") {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, width, height);
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (resultBlob) => {
-            if (resultBlob) {
-              resolve(resultBlob);
-            } else {
-              reject(new Error("Erreur conversion blob"));
-            }
-          },
-          outputFormat === "jpg" ? "image/jpeg" : "image/png",
-          outputFormat === "jpg" ? 0.95 : undefined
-        );
-      };
-
-      img.onerror = () => reject(new Error("Erreur chargement image"));
-      img.src = URL.createObjectURL(blob);
+    const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': API_KEY,
+      },
+      body: formData,
     });
-  };
 
+    if (!response.ok) {
+      throw new Error('Erreur lors de la suppression du fond');
+    }
+
+    return await response.blob();
+  };
 
   const handleFileSelect = async (file: File) => {
     if (!ACCEPTED_FORMATS.includes(file.type)) {
@@ -149,19 +64,15 @@ export default function BackgroundRemoverPage() {
       return;
     }
 
-    // Limite de taille (10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert("Image trop volumineuse. Taille maximale : 10 MB");
       return;
     }
 
     setLoading(true);
-    setProgress(0);
 
     try {
       const originalPreview = URL.createObjectURL(file);
-
-      // Suppression du fond avec IA
       const resultBlob = await removeBackground(file);
       const resultPreview = URL.createObjectURL(resultBlob);
 
@@ -182,7 +93,6 @@ export default function BackgroundRemoverPage() {
       );
     } finally {
       setLoading(false);
-      setProgress(0);
     }
   };
 
@@ -222,8 +132,7 @@ export default function BackgroundRemoverPage() {
       .split(".")
       .slice(0, -1)
       .join(".");
-    const suffix = outputFormat === "png" ? "transparent" : "no-bg";
-    link.download = `${originalName || "image"}-${suffix}.${outputFormat}`;
+    link.download = `${originalName || "image"}-no-bg.${outputFormat}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -266,49 +175,13 @@ export default function BackgroundRemoverPage() {
             Suppresseur de Fond
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Supprimez automatiquement le fond de vos images avec l'intelligence
-            artificielle. Choisissez le format et la résolution de sortie. 100% gratuit et privé.
+            Supprimez automatiquement le fond de vos images. 100% gratuit et privé.
           </p>
         </div>
 
         {/* Upload Zone */}
         {!result && (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8">
-            {/* Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Format de sortie
-                </label>
-                <select
-                  value={outputFormat}
-                  onChange={(e) => setOutputFormat(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-niyya-lime focus:ring-2 focus:ring-niyya-lime/20 transition-all"
-                >
-                  <option value="png">PNG (avec transparence)</option>
-                  <option value="jpg">JPG (fond blanc)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Résolution de sortie
-                </label>
-                <select
-                  value={outputResolution}
-                  onChange={(e) => setOutputResolution(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-niyya-lime focus:ring-2 focus:ring-niyya-lime/20 transition-all"
-                >
-                  <option value={1024}>1024px</option>
-                  <option value={1920}>1920px (Full HD)</option>
-                  <option value={2560}>2560px (2K)</option>
-                  <option value={3840}>3840px (4K)</option>
-                  <option value={99999}>Original</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Drag & Drop Zone */}
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -340,19 +213,6 @@ export default function BackgroundRemoverPage() {
                   <p className="text-white font-semibold">
                     Suppression du fond en cours...
                   </p>
-                  <div className="max-w-xs mx-auto">
-                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-niyya-lime h-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-gray-400 mt-2">{progress}%</p>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    L'IA analyse votre image... Cela peut prendre quelques
-                    secondes.
-                  </p>
                 </div>
               ) : (
                 <>
@@ -382,24 +242,6 @@ export default function BackgroundRemoverPage() {
         {/* Results */}
         {result && (
           <div className="space-y-8">
-            {/* Stats */}
-            <div className="bg-niyya-lime/10 border border-niyya-lime/30 rounded-2xl p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    {formatFileSize(result.originalSize)}
-                  </div>
-                  <div className="text-sm text-gray-400">Taille originale</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-niyya-lime mb-1">
-                    {formatFileSize(result.resultSize)}
-                  </div>
-                  <div className="text-sm text-gray-400">Avec fond supprimé</div>
-                </div>
-              </div>
-            </div>
-
             {/* Image Comparison */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Original */}
@@ -416,10 +258,10 @@ export default function BackgroundRemoverPage() {
                 </div>
               </div>
 
-              {/* Result with transparent background pattern */}
+              {/* Result */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-bold text-niyya-lime mb-4">
-                  Fond supprimé ({outputFormat.toUpperCase()})
+                  Fond supprimé
                 </h3>
                 <div
                   className="relative aspect-square rounded-lg overflow-hidden"
@@ -439,7 +281,7 @@ export default function BackgroundRemoverPage() {
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={handleDownload} variant="primary">
-                Télécharger {outputFormat.toUpperCase()}
+                Télécharger
               </Button>
               <Button onClick={handleReset} variant="outline">
                 Nouvelle image
@@ -447,8 +289,6 @@ export default function BackgroundRemoverPage() {
             </div>
           </div>
         )}
-
-
       </div>
     </div>
   );

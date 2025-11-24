@@ -10,12 +10,21 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'], // Formats modernes
   },
   
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
+    // Permettre au code client d'accéder aux variables d'environnement nécessaires
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env': JSON.stringify(process.env),
+        })
+      );
+    }
     // Support WASM pour @imgly/background-removal
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
       layers: true,
+      topLevelAwait: true,
     };
 
     // IMPORTANT: Exclure les packages côté serveur car ils fonctionnent uniquement dans le navigateur
@@ -28,7 +37,8 @@ const nextConfig = {
         '@tensorflow/tfjs-node',
         '@tensorflow/tfjs-backend-webgl',
         '@tensorflow/tfjs-backend-cpu',
-        'onnxruntime-node'
+        'onnxruntime-node',
+        'onnxruntime-web'
       );
     }
 
@@ -49,15 +59,27 @@ const nextConfig = {
         test: /\.mjs$/,
         include: /node_modules/,
         type: 'javascript/auto',
+      },
+      // Gérer les fichiers WASM
+      {
+        test: /\.wasm$/,
+        type: 'asset/resource',
       }
     );
 
-    // Exclure onnxruntime
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'onnxruntime-node': false,
-      'onnxruntime-web': false,
-    };
+    // Rediriger onnxruntime-node vers onnxruntime-web pour le client
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'onnxruntime-node': 'onnxruntime-web',
+      };
+    } else {
+      // Côté serveur, désactiver onnxruntime
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'onnxruntime-node': false,
+      };
+    }
 
     // Ignorer les warnings
     config.ignoreWarnings = [
