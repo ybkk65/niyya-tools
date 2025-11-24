@@ -2,49 +2,65 @@
 
 ## ✨ Fonctionnalité ajoutée
 
-Le modèle IA pour la suppression de fond est maintenant **préchargé automatiquement** dès l'ouverture de la page `/bg-remover`.
+Le modèle IA pour la suppression de fond est maintenant **préchargé automatiquement dès la page d'accueil** !
+
+🎯 **Stratégie optimale** : Le préchargement démarre 2 secondes après l'arrivée sur la page d'accueil, ce qui permet :
+- ✅ Chargement initial rapide de la page
+- ✅ Modèle IA prêt avant même d'aller sur `/bg-remover`
+- ✅ Expérience **instantanée** pour l'utilisateur
 
 ## 🎯 Avantages
 
 ### Avant (sans préchargement)
-1. Utilisateur arrive sur la page
-2. Utilisateur upload une image
-3. **⏳ Téléchargement du modèle IA (30-60 secondes)**
-4. Traitement de l'image
-5. Résultat
-
-### Après (avec préchargement)
-1. Utilisateur arrive sur la page
-2. **⏳ Téléchargement du modèle IA en arrière-plan (30-60 secondes)**
+1. Utilisateur arrive sur la page d'accueil
+2. Utilisateur clique sur "Suppresseur de Fond"
 3. Utilisateur upload une image
-4. **⚡ Traitement instantané** (le modèle est déjà chargé !)
-5. Résultat
+4. **⏳ Téléchargement du modèle IA (30-60 secondes)**
+5. Traitement de l'image
+6. Résultat
+
+### Après (avec préchargement dès l'accueil)
+1. Utilisateur arrive sur la page d'accueil
+2. **🚀 Après 2s : Téléchargement du modèle IA en arrière-plan (30-60s)**
+3. Utilisateur navigue sur le site, consulte les outils
+4. **✅ Modèle IA prêt !** (indicateur visuel sur l'accueil)
+5. Utilisateur clique sur "Suppresseur de Fond"
+6. Utilisateur upload une image
+7. **⚡ Traitement INSTANTANÉ** (0 seconde d'attente !)
+8. Résultat
 
 ## 🔧 Comment ça fonctionne
 
-### Code ajouté dans `bg-remover/page.tsx`
+### Code ajouté dans `app/page.tsx` (Page d'accueil)
 
 ```typescript
-// Précharger le modèle IA au montage du composant
+// Précharger le modèle IA dès la page d'accueil
 useEffect(() => {
-  const preloadModel = async () => {
+  const preloadAI = async () => {
     try {
-      setIsModelLoading(true);
+      setIsAILoading(true);
+      console.log("🚀 Démarrage du préchargement du modèle IA...");
+      
       const { preload } = await import("@imgly/background-removal");
       await preload({
-        model: "isnet", // Modèle par défaut (meilleure qualité)
+        model: "isnet",
       });
-      setModelReady(true);
+      
+      setIsAIReady(true);
       console.log("✅ Modèle IA préchargé et prêt !");
     } catch (error) {
-      console.error("Erreur préchargement modèle:", error);
-      setModelReady(true);
+      console.error("❌ Erreur préchargement IA:", error);
     } finally {
-      setIsModelLoading(false);
+      setIsAILoading(false);
     }
   };
 
-  preloadModel();
+  // Lancer après 2 secondes pour ne pas ralentir le chargement initial
+  const timer = setTimeout(() => {
+    preloadAI();
+  }, 2000);
+
+  return () => clearTimeout(timer);
 }, []);
 ```
 
