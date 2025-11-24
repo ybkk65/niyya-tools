@@ -51,15 +51,23 @@ export default function Header() {
             ))}
           </div>
 
-          {/* CTA Button */}
-          <div className="flex items-center">
+          {/* CTA Buttons */}
+          <div className="flex items-center gap-3">
             <a
-              href="https://niyya.fr"
+              href="https://www.niyya-agency.com/admin/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg border border-niyya-lime/30 text-niyya-lime hover:bg-niyya-lime/10 transition-all"
+            >
+              Dashboard
+            </a>
+            <a
+              href="https://www.niyya-agency.com"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-niyya-lime text-niyya-darker hover:bg-niyya-lime/90 transition-all hover:scale-105"
             >
-              Niyya Agency →
+              Site Web
             </a>
           </div>
         </div>

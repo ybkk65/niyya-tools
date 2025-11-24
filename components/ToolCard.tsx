@@ -1,42 +1,33 @@
 import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 interface ToolCardProps {
   title: string;
   description: string;
   href: string;
-  icon: string;
+  icon: IconDefinition;
 }
 
 export default function ToolCard({ title, description, href, icon }: ToolCardProps) {
   return (
     <Link
       href={href}
-      className="group relative block p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-niyya-lime/50 transition-all duration-300 hover:scale-105"
+      className="group relative block p-6 rounded-xl bg-white/5 border border-white/10 hover:border-niyya-lime/50 transition-all duration-200 hover:bg-white/[0.07]"
     >
-      {/* Effet de glow au hover */}
-      <div className="absolute inset-0 rounded-2xl bg-niyya-lime/0 group-hover:bg-niyya-lime/5 transition-all duration-300" />
-      
       <div className="relative">
         {/* Icon */}
-        <div className="flex items-center justify-center w-16 h-16 mb-6 rounded-xl bg-niyya-lime/10 text-niyya-lime text-3xl group-hover:scale-110 transition-transform">
-          {icon}
+        <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-lg bg-niyya-lime/10 text-niyya-lime group-hover:bg-niyya-lime/20 transition-colors">
+          <FontAwesomeIcon icon={icon} className="w-6 h-6" />
         </div>
 
         {/* Content */}
-        <h3 className="text-xl font-bold text-white mb-3 group-hover:text-niyya-lime transition-colors">
+        <h3 className="text-base font-semibold text-white mb-2">
           {title}
         </h3>
-        <p className="text-gray-400 text-sm leading-relaxed">
+        <p className="text-gray-500 text-xs leading-relaxed">
           {description}
         </p>
-
-        {/* Arrow */}
-        <div className="mt-6 flex items-center text-niyya-lime font-semibold text-sm">
-          <span className="group-hover:translate-x-1 transition-transform">
-            Utiliser l'outil
-          </span>
-          <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-        </div>
       </div>
     </Link>
   );

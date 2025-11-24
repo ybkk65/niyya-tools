@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Button from "@/components/Button";
 import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faQrcode } from "@fortawesome/free-solid-svg-icons";
 
 export default function QRCodePage() {
   const [url, setUrl] = useState("");
@@ -92,8 +94,8 @@ export default function QRCodePage() {
 
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-niyya-lime/10 text-5xl">
-            📱
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-niyya-lime/10 text-niyya-lime">
+            <FontAwesomeIcon icon={faQrcode} className="w-10 h-10" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             Générateur de QR Code
@@ -164,50 +166,24 @@ export default function QRCodePage() {
                     onClick={handleDownload}
                     variant="primary"
                   >
-                    Télécharger en PNG
+                    Télécharger PNG
                   </Button>
                   <Button
                     onClick={handleReset}
                     variant="outline"
                   >
-                    Créer un nouveau QR Code
+                    Nouveau QR Code
                   </Button>
                 </div>
 
                 <p className="text-sm text-gray-500">
-                  Le QR code a été généré avec succès ✨
+                  QR code généré avec succès
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-            <div className="text-3xl mb-3">⚡</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Instantané</h3>
-            <p className="text-sm text-gray-400">
-              Génération ultra-rapide en quelques secondes
-            </p>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-            <div className="text-3xl mb-3">🎨</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Haute qualité</h3>
-            <p className="text-sm text-gray-400">
-              Format PNG optimisé pour tous vos supports
-            </p>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-            <div className="text-3xl mb-3">🔒</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Sécurisé</h3>
-            <p className="text-sm text-gray-400">
-              Aucune donnée conservée, 100% privé
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
