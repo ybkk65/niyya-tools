@@ -29,10 +29,20 @@ export default function Home() {
         );
         
         const loadPromise = (async () => {
-          const { preload } = await import("@imgly/background-removal");
-          await preload({
-            model: "isnet",
-          });
+          try {
+            const { preload } = await import("@imgly/background-removal");
+            await preload({
+              model: "isnet",
+            });
+          } catch (err) {
+            // Gestion spécifique des erreurs WASM
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            if (errorMessage.includes('wasm') || errorMessage.includes('env')) {
+              console.warn("⚠️ Erreur WASM détectée, le modèle se chargera à la demande");
+              throw new Error('WASM_ERROR');
+            }
+            throw err;
+          }
         })();
         
         await Promise.race([loadPromise, timeoutPromise]);
@@ -41,9 +51,20 @@ export default function Home() {
         setRetryCount(0);
         console.log("✅ Modèle IA préchargé et prêt !");
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`❌ Tentative ${attempt} échouée:`, error);
         
-        // Retry jusqu'à 3 fois
+        // Si c'est une erreur WASM, on abandonne immédiatement (pas de retry)
+        if (errorMessage.includes('WASM_ERROR') || errorMessage.includes('wasm') || errorMessage.includes('env')) {
+          setAiError("Le modèle IA se chargera lors de la première utilisation.");
+          setIsAIReady(false);
+          setRetryCount(0);
+          setIsAILoading(false);
+          console.log("ℹ️ Préchargement désactivé. Le modèle se chargera à la demande.");
+          return;
+        }
+        
+        // Retry jusqu'à 3 fois pour les autres erreurs
         if (attempt < 3) {
           setRetryCount(attempt);
           console.log(`🔄 Nouvelle tentative dans 5 secondes...`);
@@ -51,9 +72,9 @@ export default function Home() {
         } else {
           // Après 3 tentatives, on abandonne mais on permet quand même l'utilisation
           setAiError(
-            error instanceof Error && error.message === 'Timeout'
+            errorMessage === 'Timeout'
               ? "Connexion trop lente. Le modèle se chargera lors de l'utilisation."
-              : "Impossible de précharger le modèle. Il se chargera lors de l'utilisation."
+              : "Le modèle se chargera lors de la première utilisation."
           );
           setIsAIReady(false);
           setRetryCount(0);
@@ -186,17 +207,17 @@ export default function Home() {
           {/* Message d'erreur avec fallback */}
           {aiError && (
             <div className="mt-12 flex justify-center">
-              <div className="inline-flex items-center gap-3 px-6 py-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                <span className="text-orange-500 text-xl">⚠️</span>
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <span className="text-blue-400 text-xl">ℹ️</span>
                 <div className="text-left">
-                  <p className="text-sm text-orange-400 font-semibold">
-                    Connexion lente détectée
+                  <p className="text-sm text-blue-400 font-semibold">
+                    Mode chargement à la demande
                   </p>
                   <p className="text-xs text-gray-400">
                     {aiError}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    L'outil fonctionnera quand même, avec un temps de chargement initial.
+                    L'outil fonctionnera normalement avec un temps de chargement lors du premier usage.
                   </p>
                 </div>
               </div>
