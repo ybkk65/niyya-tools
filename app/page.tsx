@@ -4,7 +4,8 @@ import {
   faCompressAlt, 
   faArrowsRotate, 
   faScissors,
-  faFileExport
+  faFileExport,
+  faFileArchive
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Home() {
@@ -35,9 +36,15 @@ export default function Home() {
     },
     {
       title: "Convertisseur de Fichiers",
-      description: "Convertissez vos documents entre différents formats (PDF, Word, TXT, etc.).",
+      description: "Convertissez vos documents et données entre différents formats (PDF, Word, TXT, etc.).",
       href: "/file-converter",
       icon: faFileExport,
+    },
+    {
+      title: "Compresseur de Fichiers",
+      description: "Compressez vos fichiers en ZIP ou décompressez des archives (ZIP, RAR, 7Z).",
+      href: "/file-compressor",
+      icon: faFileArchive,
     },
   ];
 
@@ -75,7 +82,7 @@ export default function Home() {
           </div>
 
           {/* Tools Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tools.map((tool) => (
               <ToolCard
                 key={tool.href}
