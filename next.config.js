@@ -23,6 +23,13 @@ const nextConfig = {
       config.output = config.output || {};
       config.output.publicPath = '/_next/';
       config.output.webassemblyModuleFilename = 'static/wasm/[modulehash].wasm';
+      
+      // IMPORTANT: Empêcher webpack de transformer les URLs en objets
+      config.module.parser = config.module.parser || {};
+      config.module.parser.javascript = {
+        ...config.module.parser.javascript,
+        url: false,  // Désactiver la transformation d'URL
+      };
     }
     
     // Support WASM pour @imgly/background-removal
@@ -71,6 +78,9 @@ const nextConfig = {
       {
         test: /\.wasm$/,
         type: 'asset/resource',
+        generator: {
+          filename: 'static/wasm/[name][ext]',
+        },
       }
     );
 

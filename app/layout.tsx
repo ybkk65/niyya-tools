@@ -33,12 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={inter.variable}>
-      <body className="antialiased">
+      <body className={inter.className}>
         <Header />
-        <main className="min-h-screen">
+        <main className="flex-grow">
           {children}
         </main>
         <Footer />
+        <script src="/ort-loader.js" defer />
       </body>
     </html>
   );
