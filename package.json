@@ -17,12 +17,15 @@
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@imgly/background-removal": "^1.4.5",
     "browser-image-compression": "^2.0.2",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
     "next": "^14.2.0",
     "qrcode": "^1.5.3",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^20.11.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.0",
