@@ -5,6 +5,7 @@ import Link from "next/link";
 import Button from "@/components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faScissors, faCloudArrowUp } from "@fortawesome/free-solid-svg-icons";
+import { useOnnxRuntime } from "./useOnnxRuntime";
 
 interface RemovalResult {
   originalFile: File;
@@ -16,6 +17,7 @@ interface RemovalResult {
 }
 
 export default function BackgroundRemoverPage() {
+  const { isReady: onnxReady, error: onnxError } = useOnnxRuntime();
   const [result, setResult] = useState<RemovalResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -46,6 +48,7 @@ export default function BackgroundRemoverPage() {
       }
 
       console.log('🚀 Début suppression fond pour:', file.name, 'Type:', file.type, 'Taille:', file.size);
+      console.log('📡 ONNX Runtime prêt:', onnxReady, onnxError ? `(Erreur: ${onnxError})` : '');
 
       // Importer la bibliothèque
       let removeBg;
@@ -64,7 +67,13 @@ export default function BackgroundRemoverPage() {
       }
 
       // Configuration avec callback de progression
+      // On utilise le CDN par défaut de la bibliothèque pour les modèles
       const config = {
+        model: 'isnet' as const,
+        output: {
+          format: 'image/png' as const,
+          quality: 0.8,
+        },
         progress: (key: string, current: number, total: number) => {
           const percentage = Math.round((current / total) * 100);
           console.log(`📊 Progression ${key}: ${percentage}%`);

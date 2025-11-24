@@ -10,21 +10,28 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'], // Formats modernes
   },
   
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer, webpack, dev }) => {
     // Permettre au code client d'accéder aux variables d'environnement nécessaires
     if (!isServer) {
       config.plugins.push(
         new webpack.DefinePlugin({
-          'process.env': JSON.stringify(process.env),
+          'process.env.NODE_ENV': JSON.stringify(dev ? 'development' : 'production'),
         })
       );
+      
+      // Configuration du output pour les fichiers WASM
+      config.output = config.output || {};
+      config.output.publicPath = '/_next/';
+      config.output.webassemblyModuleFilename = 'static/wasm/[modulehash].wasm';
     }
+    
     // Support WASM pour @imgly/background-removal
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
       layers: true,
       topLevelAwait: true,
+      syncWebAssembly: true,
     };
 
     // IMPORTANT: Exclure les packages côté serveur car ils fonctionnent uniquement dans le navigateur
@@ -67,18 +74,15 @@ const nextConfig = {
       }
     );
 
-    // Rediriger onnxruntime-node vers onnxruntime-web pour le client
+    // Configuration des alias pour onnxruntime
+    config.resolve.alias = config.resolve.alias || {};
     if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'onnxruntime-node': 'onnxruntime-web',
-      };
+      // Côté client: rediriger onnxruntime-node vers onnxruntime-web
+      config.resolve.alias['onnxruntime-node'] = 'onnxruntime-web';
     } else {
-      // Côté serveur, désactiver onnxruntime
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'onnxruntime-node': false,
-      };
+      // Côté serveur: désactiver complètement
+      config.resolve.alias['onnxruntime-node'] = false;
+      config.resolve.alias['onnxruntime-web'] = false;
     }
 
     // Ignorer les warnings

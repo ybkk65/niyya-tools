@@ -1,0 +1,12 @@
+{
+  "models": {
+    "isnet": {
+      "path": "/models/isnet_fp16.onnx",
+      "size": 176000000
+    },
+    "isnet_quint8": {
+      "path": "/models/isnet_quint8.onnx",
+      "size": 44000000
+    }
+  }
+}
