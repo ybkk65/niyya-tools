@@ -52,6 +52,23 @@ npm run build
 npm start
 ```
 
+### 4. Déploiement sur Vercel
+
+Le projet est prêt pour être déployé sur Vercel :
+
+1. **Via l'interface Vercel** :
+   - Connectez votre repository GitHub/GitLab
+   - Vercel détectera automatiquement Next.js
+   - Le build se fera automatiquement
+
+2. **Via la CLI Vercel** :
+   ```bash
+   npm i -g vercel
+   vercel
+   ```
+
+**Note importante** : Le projet utilise `@imgly/background-removal` qui nécessite une configuration webpack spéciale. La configuration est déjà en place dans `next.config.js` pour gérer les fichiers WASM et les dépendances TensorFlow.js.
+
 ---
 
 ## 📁 Structure du projet
