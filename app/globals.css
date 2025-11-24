@@ -7,14 +7,39 @@
     border-color: rgba(255, 255, 255, 0.1);
   }
   
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
     @apply bg-niyya-darker text-white;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Optimisation GPU pour les animations */
+  * {
+    will-change: auto;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Accélération matérielle pour les transitions */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* Smooth scroll pour les containers */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 }

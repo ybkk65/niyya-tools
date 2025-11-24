@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Optimisations de production
+  compress: true, // Compression gzip
+  poweredByHeader: false, // Retirer le header X-Powered-By
+  reactStrictMode: true, // Mode strict React
+  
   images: {
     remotePatterns: [],
+    formats: ['image/avif', 'image/webp'], // Formats modernes
   },
+  
   webpack: (config, { isServer }) => {
     // Support WASM pour @imgly/background-removal
     config.experiments = {

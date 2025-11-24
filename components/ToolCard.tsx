@@ -13,6 +13,7 @@ export default function ToolCard({ title, description, href, icon }: ToolCardPro
   return (
     <Link
       href={href}
+      prefetch={true}
       className="group relative block p-6 rounded-xl bg-white/5 border border-white/10 hover:border-niyya-lime/50 transition-all duration-200 hover:bg-white/[0.07]"
     >
       <div className="relative">

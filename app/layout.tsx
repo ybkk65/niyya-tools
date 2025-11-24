@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 const inter = Inter({ 
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap", // Affiche le texte immédiatement avec une font système
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -15,6 +17,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.png",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#BEFF00",
 };
 
 export default function RootLayout({

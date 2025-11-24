@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, DragEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent, DragEvent } from "react";
 import Link from "next/link";
 import Button from "@/components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -22,6 +22,8 @@ export default function BackgroundRemoverPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [outputResolution, setOutputResolution] = useState<number>(99999); // Original par défaut
   const [outputFormat, setOutputFormat] = useState<string>("png");
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [modelReady, setModelReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ACCEPTED_FORMATS = [
@@ -30,6 +32,30 @@ export default function BackgroundRemoverPage() {
     "image/png",
     "image/webp",
   ];
+
+  // Précharger le modèle IA au montage du composant
+  useEffect(() => {
+    const preloadModel = async () => {
+      try {
+        setIsModelLoading(true);
+        // Import et préchargement du modèle
+        const { preload } = await import("@imgly/background-removal");
+        await preload({
+          model: "isnet", // Modèle par défaut (meilleure qualité)
+        });
+        setModelReady(true);
+        console.log("✅ Modèle IA préchargé et prêt !");
+      } catch (error) {
+        console.error("Erreur préchargement modèle:", error);
+        // Même si le préchargement échoue, on peut continuer
+        setModelReady(true);
+      } finally {
+        setIsModelLoading(false);
+      }
+    };
+
+    preloadModel();
+  }, []);
 
   const removeBackground = async (file: File): Promise<Blob> => {
     // Dynamically import the library (client-side only)
@@ -237,6 +263,25 @@ export default function BackgroundRemoverPage() {
             Supprimez automatiquement le fond de vos images avec l'intelligence
             artificielle. Choisissez le format et la résolution de sortie. 100% gratuit et privé.
           </p>
+          
+          {/* Indicateur de chargement du modèle */}
+          {isModelLoading && (
+            <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-niyya-lime/10 border border-niyya-lime/30 rounded-lg">
+              <div className="animate-spin h-4 w-4 border-2 border-niyya-lime border-t-transparent rounded-full"></div>
+              <span className="text-sm text-niyya-lime font-medium">
+                Chargement du modèle IA...
+              </span>
+            </div>
+          )}
+          
+          {modelReady && !isModelLoading && (
+            <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <span className="text-green-500 text-lg">✅</span>
+              <span className="text-sm text-green-400 font-medium">
+                Modèle IA prêt !
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Upload Zone */}
@@ -281,7 +326,7 @@ export default function BackgroundRemoverPage() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={() => !loading && fileInputRef.current?.click()}
+              onClick={() => !loading && !isModelLoading && modelReady && fileInputRef.current?.click()}
               className={`
                 relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
                 transition-all duration-300
@@ -290,7 +335,7 @@ export default function BackgroundRemoverPage() {
                     ? "border-niyya-lime bg-niyya-lime/10"
                     : "border-white/20 hover:border-niyya-lime/50 hover:bg-white/5"
                 }
-                ${loading ? "pointer-events-none" : ""}
+                ${loading || isModelLoading || !modelReady ? "pointer-events-none opacity-50" : ""}
               `}
             >
               <input
@@ -299,7 +344,7 @@ export default function BackgroundRemoverPage() {
                 accept={ACCEPTED_FORMATS.join(",")}
                 onChange={handleFileInputChange}
                 className="hidden"
-                disabled={loading}
+                disabled={loading || isModelLoading || !modelReady}
               />
 
               {loading ? (
