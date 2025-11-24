@@ -3,7 +3,8 @@ import {
   faQrcode, 
   faCompressAlt, 
   faArrowsRotate, 
-  faScissors 
+  faScissors,
+  faFileExport
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Home() {
@@ -31,6 +32,12 @@ export default function Home() {
       description: "Suppression automatique de fond avec IA. Export PNG transparent.",
       href: "/bg-remover",
       icon: faScissors,
+    },
+    {
+      title: "Convertisseur de Fichiers",
+      description: "Convertissez vos documents entre différents formats (PDF, Word, TXT, etc.).",
+      href: "/file-converter",
+      icon: faFileExport,
     },
   ];
 
@@ -68,7 +75,7 @@ export default function Home() {
           </div>
 
           {/* Tools Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {tools.map((tool) => (
               <ToolCard
                 key={tool.href}
