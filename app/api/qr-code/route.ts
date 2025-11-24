@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json();
-    const { url } = body;
+    let { url } = body;
 
     // Validation : URL présente
     if (!url || typeof url !== "string") {
@@ -14,6 +14,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // S'assurer que url est bien une string (convertir si nécessaire)
+    url = String(url).trim();
 
     // Validation : URL valide
     try {

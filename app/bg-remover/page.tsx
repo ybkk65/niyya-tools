@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, ChangeEvent, DragEvent } from "react";
+import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import Link from "next/link";
 import Button from "@/components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -40,51 +40,80 @@ export default function BackgroundRemoverPage() {
         throw new Error('Cette fonction doit être exécutée côté client');
       }
 
-      // Importer et initialiser la bibliothèque avec gestion d'erreur robuste
+      // Vérifier que file est bien un File
+      if (!(file instanceof File)) {
+        throw new Error('Le fichier fourni n\'est pas valide');
+      }
+
+      console.log('🚀 Début suppression fond pour:', file.name, 'Type:', file.type, 'Taille:', file.size);
+
+      // Importer la bibliothèque
       let removeBg;
       try {
         const bgRemovalModule = await import("@imgly/background-removal");
         
-        // Vérifier que le module est correctement chargé
         if (!bgRemovalModule || !bgRemovalModule.removeBackground) {
           throw new Error('Module de suppression de fond non disponible');
         }
         
         removeBg = bgRemovalModule.removeBackground;
+        console.log('✅ Module @imgly/background-removal chargé');
       } catch (importError) {
-        console.error("Erreur import module:", importError);
+        console.error("❌ Erreur import module:", importError);
         throw new Error('Le module de suppression de fond n\'a pas pu être chargé. Veuillez rafraîchir la page.');
       }
 
-      // Configuration minimale pour éviter les erreurs
+      // Configuration avec callback de progression
       const config = {
         progress: (key: string, current: number, total: number) => {
           const percentage = Math.round((current / total) * 100);
+          console.log(`📊 Progression ${key}: ${percentage}%`);
           setProgress(percentage);
         },
       };
 
-      // Tentative de suppression du fond
+      // Suppression du fond
       let blob;
       try {
+        console.log('⏳ Appel removeBackground...');
         blob = await removeBg(file, config);
+        console.log('✅ Suppression terminée, blob:', blob);
       } catch (removeBgError) {
-        console.error("Erreur lors de la suppression:", removeBgError);
-        // Fallback: essayer sans configuration
-        blob = await removeBg(file);
+        console.error("❌ Erreur lors de la suppression:", removeBgError);
+        
+        // Vérifier si c'est l'erreur url.replace
+        const errorStr = String(removeBgError);
+        if (errorStr.includes('url.replace')) {
+          console.log('⚠️ Erreur url.replace détectée, essai sans config...');
+          try {
+            blob = await removeBg(file);
+          } catch (secondError) {
+            console.error("❌ Échec même sans config:", secondError);
+            throw new Error('Impossible de traiter l\'image. La bibliothèque IA rencontre des difficultés.');
+          }
+        } else {
+          throw removeBgError;
+        }
+      }
+
+      // Vérifier que le blob est valide
+      if (!blob || !(blob instanceof Blob)) {
+        throw new Error('Le résultat de la suppression n\'est pas valide');
       }
       
+      console.log('🎨 Traitement de l\'image de sortie...');
       // Redimensionner si nécessaire et convertir au format choisi
       blob = await processOutputImage(blob);
+      console.log('✅ Traitement terminé');
       
       return blob;
     } catch (error) {
-      console.error("Erreur suppression fond:", error);
+      console.error("❌ Erreur suppression fond:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       // Messages d'erreur plus clairs
-      if (errorMessage.includes('wasm') || errorMessage.includes('env') || errorMessage.includes('undefined')) {
-        throw new Error('Le système de suppression de fond n\'est pas disponible. Veuillez rafraîchir la page et réessayer.');
+      if (errorMessage.includes('wasm') || errorMessage.includes('env') || errorMessage.includes('undefined') || errorMessage.includes('url.replace')) {
+        throw new Error('Le système de suppression de fond rencontre une erreur technique. Veuillez rafraîchir la page et réessayer avec une autre image.');
       }
       
       throw error;
