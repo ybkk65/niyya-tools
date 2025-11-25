@@ -22,12 +22,21 @@ interface CompressResult {
   compressionRatio: number;
 }
 
+interface ExtractedFile {
+  name: string;
+  blob: Blob;
+  size: number;
+}
+
 export default function FileCompressorPage() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [result, setResult] = useState<CompressResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [mode, setMode] = useState<"compress" | "decompress">("compress");
+  const [zipName, setZipName] = useState<string>("archive");
+  const [outputFormat, setOutputFormat] = useState<string>("zip");
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const compressFiles = async (fileList: FileItem[]): Promise<CompressResult> => {
@@ -66,7 +75,7 @@ export default function FileCompressorPage() {
         
         resolve({
           blob,
-          filename: 'archive.zip',
+          filename: `${zipName}.${outputFormat}`,
           originalSize: totalSize,
           compressedSize,
           compressionRatio: Math.max(0, compressionRatio),
@@ -78,7 +87,7 @@ export default function FileCompressorPage() {
     });
   };
 
-  const decompressFile = async (file: File): Promise<CompressResult> => {
+  const decompressFile = async (file: File): Promise<ExtractedFile[]> => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log('📂 Début décompression avec JSZip...');
@@ -88,30 +97,24 @@ export default function FileCompressorPage() {
         
         console.log('✅ Archive chargée');
         
-        // Lister tous les fichiers
-        const fileNames: string[] = [];
-        const fileSizes: number[] = [];
+        const extracted: ExtractedFile[] = [];
         
-        zip.forEach((relativePath, zipEntry) => {
+        // Extraire tous les fichiers
+        for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
           if (!zipEntry.dir) {
-            fileNames.push(relativePath);
-            // Note: JSZip ne donne pas directement la taille décompressée
+            console.log(`📄 Extraction: ${relativePath}`);
+            const content = await zipEntry.async('blob');
+            extracted.push({
+              name: relativePath,
+              blob: content,
+              size: content.size
+            });
           }
-        });
+        }
         
-        console.log(`📄 ${fileNames.length} fichiers trouvés`);
+        console.log(`✅ ${extracted.length} fichiers extraits`);
         
-        // Créer un fichier texte avec la liste
-        const content = `Archive décompressée: ${file.name}\n\nFichiers extraits:\n${fileNames.map((name, i) => `${i + 1}. ${name}`).join('\n')}\n\nTotal: ${fileNames.length} fichier(s)`;
-        const blob = new Blob([content], { type: 'text/plain' });
-        
-        resolve({
-          blob,
-          filename: 'extraction-info.txt',
-          originalSize: file.size,
-          compressedSize: blob.size,
-          compressionRatio: 0,
-        });
+        resolve(extracted);
       } catch (error) {
         console.error('❌ Erreur décompression:', error);
         reject(error);
@@ -181,8 +184,8 @@ export default function FileCompressorPage() {
 
     try {
       setLoading(true);
-      const result = await decompressFile(files[0].file);
-      setResult(result);
+      const extracted = await decompressFile(files[0].file);
+      setExtractedFiles(extracted);
     } catch (error) {
       console.error("Erreur:", error);
       alert("Erreur lors de la décompression");
@@ -203,9 +206,27 @@ export default function FileCompressorPage() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadExtractedFile = (file: ExtractedFile) => {
+    const url = URL.createObjectURL(file.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadAllExtracted = () => {
+    extractedFiles.forEach((file, index) => {
+      setTimeout(() => downloadExtractedFile(file), index * 500);
+    });
+  };
+
   const handleReset = () => {
     setFiles([]);
     setResult(null);
+    setExtractedFiles([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -249,7 +270,7 @@ export default function FileCompressorPage() {
                 handleReset();
               }}
               disabled={loading}
-              className={`px-6 py-4 rounded-lg font-medium transition-all ${
+              className={`px-8 py-5 rounded-lg font-medium transition-all ${
                 mode === "compress"
                   ? "bg-niyya-lime text-black"
                   : "bg-gray-700/50 text-gray-300 hover:bg-gray-700"
@@ -264,7 +285,7 @@ export default function FileCompressorPage() {
                 handleReset();
               }}
               disabled={loading}
-              className={`px-6 py-4 rounded-lg font-medium transition-all ${
+              className={`px-8 py-5 rounded-lg font-medium transition-all ${
                 mode === "decompress"
                   ? "bg-niyya-lime text-black"
                   : "bg-gray-700/50 text-gray-300 hover:bg-gray-700"
@@ -276,8 +297,48 @@ export default function FileCompressorPage() {
           </div>
         </div>
 
+        {/* Options de compression */}
+        {mode === "compress" && (
+          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 mb-6">
+            <h3 className="text-sm font-medium text-gray-300 mb-4">Options de sortie</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Nom du fichier */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Nom de l'archive
+                </label>
+                <input
+                  type="text"
+                  value={zipName}
+                  onChange={(e) => setZipName(e.target.value)}
+                  disabled={loading}
+                  placeholder="archive"
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-niyya-lime transition-colors disabled:opacity-50"
+                />
+              </div>
+
+              {/* Format de sortie */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Format de sortie
+                </label>
+                <select
+                  value={outputFormat}
+                  onChange={(e) => setOutputFormat(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-niyya-lime transition-colors disabled:opacity-50"
+                >
+                  <option value="zip">ZIP (.zip)</option>
+                  <option value="tar">TAR (.tar)</option>
+                  <option value="gz">GZIP (.gz)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Zone de dépôt */}
-        {!result && (
+        {!result && extractedFiles.length === 0 && (
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -336,7 +397,7 @@ export default function FileCompressorPage() {
         )}
 
         {/* Liste des fichiers */}
-        {files.length > 0 && !result && (
+        {files.length > 0 && !result && extractedFiles.length === 0 && (
           <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
@@ -421,13 +482,6 @@ export default function FileCompressorPage() {
               </div>
             )}
 
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
-              <p className="text-sm text-green-400">
-                <strong>✅ Compression réelle :</strong> Utilise JSZip avec algorithme DEFLATE (niveau 9). 
-                La compression et décompression sont fonctionnelles ! Les ratios affichés sont réels.
-              </p>
-            </div>
-
             <div className="flex gap-3">
               <Button onClick={handleDownload} className="flex-1">
                 <FontAwesomeIcon icon={faDownload} className="mr-2" />
@@ -441,6 +495,54 @@ export default function FileCompressorPage() {
                 Nouveau
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Fichiers extraits */}
+        {extractedFiles.length > 0 && (
+          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">
+                Fichiers extraits ({extractedFiles.length})
+              </h2>
+              <Button onClick={downloadAllExtracted}>
+                <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                Tout télécharger
+              </Button>
+            </div>
+
+            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
+              {extractedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-gray-900/50 rounded-lg p-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      {formatFileSize(file.size)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => downloadExtractedFile(file)}
+                    className="ml-3 px-4 py-2 bg-niyya-lime text-black rounded-lg hover:bg-niyya-lime/90 transition-colors text-sm font-medium"
+                  >
+                    <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                    Télécharger
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleReset}
+              variant="secondary"
+              className="w-full"
+            >
+              Nouvelle extraction
+            </Button>
           </div>
         )}
 
