@@ -25,7 +25,7 @@ export default function FileConverterPage() {
   const ACCEPTED_FORMATS = {
     documents: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
     text: ["text/plain", "text/html", "text/markdown"],
-    data: ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/json"],
+    data: ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/json", "application/vnd.apple.numbers"],
   };
 
   const OUTPUT_FORMATS = [
@@ -58,6 +58,7 @@ export default function FileConverterPage() {
     if (type.includes('csv') || ext === 'csv') return 'csv';
     if (type.includes('json') || ext === 'json') return 'json';
     if (type.includes('spreadsheet') || ext === 'xlsx' || ext === 'xls') return 'xlsx';
+    if (type.includes('numbers') || ext === 'numbers') return 'numbers';
     
     return ext || 'unknown';
   };
@@ -161,7 +162,7 @@ Contenu du document converti...`;
 
       // Validation du fichier
       const allFormats = getAllAcceptedFormats().split(",");
-      if (!allFormats.includes(file.type) && !file.name.match(/\.(pdf|docx?|txt|html?|md|csv|json|xlsx?)$/i)) {
+      if (!allFormats.includes(file.type) && !file.name.match(/\.(pdf|docx?|txt|html?|md|csv|json|xlsx?|numbers)$/i)) {
         throw new Error("Format de fichier non supporté");
       }
 
